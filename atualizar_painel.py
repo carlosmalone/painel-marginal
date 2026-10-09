@@ -123,17 +123,23 @@ def lista(resp):
 
 
 def primeiro_que_funciona(nome, tentativas):
-    erros = []
+    """Usa o primeiro endereço que devolve publicações; se vierem vazios, tenta o seguinte."""
+    erros, vazio = [], False
     for caminho, params in tentativas:
         try:
             itens = lista(chamar(caminho, params))
-            print("  %-14s %-34s %d publicações" % (nome, caminho, len(itens)))
-            if DEBUG and itens:
+        except Exception as e:
+            erros.append("%s -> %s" % (caminho, e))
+            continue
+        print("  %-14s %-34s %d publicações" % (nome, caminho, len(itens)))
+        if itens:
+            if DEBUG:
                 print("    campos:", sorted(itens[0].keys()) if isinstance(itens[0], dict) else type(itens[0]))
                 print("    exemplo:", json.dumps(itens[0], ensure_ascii=False)[:600])
             return itens
-        except Exception as e:
-            erros.append("%s -> %s" % (caminho, e))
+        vazio = True
+    if vazio:
+        return []
     print("  %-14s FALHOU:" % nome)
     for e in erros:
         print("    ", e)
@@ -176,11 +182,11 @@ def data_da_publicacao(r):
                 continue
         if isinstance(v, (int, float)) and not isinstance(v, bool):
             seg = v / 1000.0 if v > 1e11 else float(v)
-            return (dt.datetime.utcfromtimestamp(seg) + LUANDA).date()
+            return (dt.datetime.fromtimestamp(seg, dt.timezone.utc) + LUANDA).date()
         s = str(v).strip()
         if re.fullmatch(r"\d{10,13}", s):
             seg = int(s) / 1000.0 if len(s) > 10 else int(s)
-            return (dt.datetime.utcfromtimestamp(seg) + LUANDA).date()
+            return (dt.datetime.fromtimestamp(seg, dt.timezone.utc) + LUANDA).date()
         m = re.match(r"(\d{4})-?(\d{2})-?(\d{2})", s)
         if m:
             try:
@@ -273,7 +279,10 @@ def seguidores(ate, anteriores):
         "fb": [("/stats/timeline/fbFollowers", {"start": s8(ini), "end": s8(fim)}),
                ("/stats/timeling/fbFollowers", {"start": s8(ini), "end": s8(fim)})],
         "ig": [("/stats/timeline/igFollowers", {"start": s8(ini), "end": s8(fim)}),
-               ("/stats/timeling/igFollowers", {"start": s8(ini), "end": s8(fim)})],
+               ("/stats/timeling/igFollowers", {"start": s8(ini), "end": s8(fim)}),
+               ("/stats/timeline/followers", {"start": s8(ini), "end": s8(fim), "subject": "account", "network": "instagram"}),
+               ("/v2/analytics/timelines", {"network": "instagram", "subject": "account", "metric": "followers",
+                                            "from": iso(ini, "T00:00:00"), "to": iso(fim, "T23:59:59")})],
         "tt": [("/v2/analytics/timelines", {"network": "tiktok", "subject": "account", "metric": "followers_count",
                                             "from": iso(ini, "T00:00:00"), "to": iso(fim, "T23:59:59")})],
     }
@@ -301,7 +310,7 @@ def main():
     if not TOKEN or not USER_ID:
         sys.exit("Faltam METRICOOL_TOKEN e/ou METRICOOL_USER_ID (veja o LEIA-ME).")
 
-    agora = dt.datetime.utcnow() + LUANDA
+    agora = dt.datetime.now(dt.timezone.utc) + LUANDA
     hoje = agora.date()
     ate = hoje - dt.timedelta(days=1)               # último dia completo
     nd = (ate - INICIO).days + 1
