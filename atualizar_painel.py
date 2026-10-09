@@ -269,7 +269,7 @@ def seguidores(ate, anteriores):
         "tt": [("/v2/analytics/timelines", {"network": "tiktok", "subject": "account", "metric": "followers_count",
                                             "from": iso(ini, "T00:00:00"), "to": iso(fim, "T23:59:59")})],
     }
-    res = {}
+    res, obtidos = {}, {}
     for rede, opcoes in tent.items():
         valor = None
         for caminho, params in opcoes:
@@ -279,12 +279,13 @@ def seguidores(ate, anteriores):
                 valor = None
             if valor:
                 break
+        obtidos[rede] = bool(valor)
         if valor:
             res[rede] = int(round(valor))
         else:
             res[rede] = anteriores.get(rede, SEGUIDORES_PADRAO[rede])
             print("  aviso: seguidores de %s não obtidos pela API; a usar %s" % (rede, res[rede]))
-    return res
+    return res, obtidos
 
 
 # ---------------------------------------------------------------------------
@@ -351,7 +352,7 @@ def main():
             dados_antes = json.load(f).get("seguidores", {})
     except Exception:
         pass
-    foll = seguidores(ate, dados_antes)
+    foll, seg_ok = seguidores(ate, dados_antes)
 
     meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     subst = {
@@ -366,6 +367,13 @@ def main():
     }
     with open(os.path.join(AQUI, "template.html"), encoding="utf-8") as f:
         html = f.read()
+    if all(seg_ok.values()):
+        frase_seg = "seguidores a " + hoje.strftime("%d/%m/%Y")
+    else:
+        em_falta = ", ".join({"fb": "Facebook", "ig": "Instagram", "tt": "TikTok"}[r] for r in REDES if not seg_ok[r])
+        frase_seg = "seguidores: " + em_falta + " = último valor conhecido (a API não o devolveu)"
+    html = html.replace("seguidores a __SEGDATA__", frase_seg)
+    html = html.replace("Dados reais das exportações do Facebook, Instagram e TikTok", "Dados reais do Metricool (API) do Facebook, Instagram e TikTok")
     for k, v in subst.items():
         html = html.replace(k, v)
     os.makedirs(SAIDA, exist_ok=True)
@@ -378,12 +386,16 @@ def main():
         "sem_data": sem_data,
         "avulsas_noticias": sum(D[len(PROGRAMAS)][r]["n"][i] for r in REDES for i in range(nd)),
         "seguidores": foll,
+        "seguidores_via_api": seg_ok,
     }
     with open(os.path.join(AQUI, "dados.json"), "w", encoding="utf-8") as f:
         json.dump(resumo, f, ensure_ascii=False, indent=1)
     print("\nPronto: saida/index.html")
     print(json.dumps(resumo, ensure_ascii=False))
 
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
