@@ -199,6 +199,14 @@ def ler_fb(r):
     return t, vis, rch, inter, 0.0, tipo
 
 
+def ler_fb_reel(r):
+    t = texto(r, "description", "content", "text")
+    vis = numero(r, "videoViews", "blueReelsPlayCount", "views")
+    rch = numero(r, "impressionsUnique", "postImpressionsUnique", "reach")
+    inter = numero(r, "likes", "postVideoReactions") + numero(r, "actions", "postVideoSocialActions")
+    return t, vis, rch, inter, 0.0, "Reel"
+
+
 def ler_ig_post(r):
     t = texto(r, "content", "caption", "text")
     vis = numero(r, "views", "impressions", "videoViews")
@@ -305,6 +313,7 @@ def main():
 
     fontes = [
         ("fb", ler_fb, primeiro_que_funciona("Facebook", [("/stats/facebook/posts", v1), ("/v2/analytics/posts/facebook", v2)])),
+        ("fb", ler_fb_reel, primeiro_que_funciona("FB Reels", [("/v2/analytics/reels/facebook", v2), ("/stats/facebook/reels", v1)])),
         ("ig", ler_ig_post, primeiro_que_funciona("Instagram", [("/stats/instagram/posts", v1), ("/v2/analytics/posts/instagram", v2)])),
         ("ig", ler_ig_reel, primeiro_que_funciona("IG Reels", [("/stats/instagram/reels", v1), ("/v2/analytics/reels/instagram", v2)])),
         ("tt", ler_tt, primeiro_que_funciona("TikTok", [("/v2/analytics/posts/tiktok", v2)])),
@@ -393,9 +402,6 @@ def main():
     print("\nPronto: saida/index.html")
     print(json.dumps(resumo, ensure_ascii=False))
 
-
-if __name__ == "__main__":
-    main()
 
 if __name__ == "__main__":
     main()
