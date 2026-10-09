@@ -199,7 +199,7 @@ def data_da_publicacao(r):
 def ler_fb(r):
     t = texto(r, "text", "message", "content")
     vis = max(numero(r, "impressions"), numero(r, "views"), numero(r, "videoViews"))
-    rch = numero(r, "impressionsUnique", "reach")
+    rch = max(numero(r, "impressionsUnique"), numero(r, "totalMediaViewUnique"), numero(r, "reach"))
     inter = numero(r, "comments") + numero(r, "reactions", "likes") + numero(r, "shares")
     tipo = "Vídeo" if numero(r, "videoViews") > 0 else "Foto"
     return t, vis, rch, inter, 0.0, tipo
@@ -411,6 +411,9 @@ def main():
     print("\nPronto: saida/index.html")
     print(json.dumps(resumo, ensure_ascii=False))
 
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
