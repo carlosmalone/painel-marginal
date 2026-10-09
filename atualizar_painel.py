@@ -133,8 +133,8 @@ def primeiro_que_funciona(nome, tentativas):
             continue
         print("  %-14s %-34s %d publicações" % (nome, caminho, len(itens)))
         if itens:
+            print("    campos:", ", ".join(sorted(itens[0].keys())) if isinstance(itens[0], dict) else type(itens[0]))
             if DEBUG:
-                print("    campos:", sorted(itens[0].keys()) if isinstance(itens[0], dict) else type(itens[0]))
                 print("    exemplo:", json.dumps(itens[0], ensure_ascii=False)[:600])
             return itens
         vazio = True
@@ -198,7 +198,7 @@ def data_da_publicacao(r):
 
 def ler_fb(r):
     t = texto(r, "text", "message", "content")
-    vis = numero(r, "impressions", "views", "videoViews")
+    vis = max(numero(r, "impressions"), numero(r, "views"), numero(r, "videoViews"))
     rch = numero(r, "impressionsUnique", "reach")
     inter = numero(r, "comments") + numero(r, "reactions", "likes") + numero(r, "shares")
     tipo = "Vídeo" if numero(r, "videoViews") > 0 else "Foto"
@@ -207,7 +207,7 @@ def ler_fb(r):
 
 def ler_fb_reel(r):
     t = texto(r, "description", "content", "text")
-    vis = numero(r, "videoViews", "blueReelsPlayCount", "views")
+    vis = max(numero(r, "videoViews"), numero(r, "blueReelsPlayCount"), numero(r, "views"))
     rch = numero(r, "impressionsUnique", "postImpressionsUnique", "reach")
     inter = numero(r, "likes", "postVideoReactions") + numero(r, "actions", "postVideoSocialActions")
     return t, vis, rch, inter, 0.0, "Reel"
